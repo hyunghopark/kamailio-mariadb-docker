@@ -1,0 +1,43 @@
+version: '3'
+
+services:
+  mariadb:
+    image: mariadb:latest
+    container_name: kamailio-mariadb
+    restart: always
+    environment:
+      - MYSQL_ROOT_PASSWORD=rootpassword
+      - MYSQL_DATABASE=kamailio
+      - MYSQL_USER=kamailio
+      - MYSQL_PASSWORD=kamailiorw
+      - TZ=Asia/Seoul
+    volumes:
+      - ./mariadb:/var/lib/mysql
+      - ./config/mariadb:/etc/mysql/conf.d
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    networks:
+      - kamailio-net
+
+  kamailio:
+    image: ghcr.io/kamailio/kamailio:latest
+    container_name: kamailio-sip
+    restart: always
+    depends_on:
+      - mariadb
+    ports:
+      - "5060:5060/udp"
+      - "5060:5060/tcp"
+      - "5061:5061/tcp"
+    volumes:
+      - ./config/kamailio:/etc/kamailio
+    environment:
+      - TZ=Asia/Seoul
+      - SIP_DOMAIN=sip.example.com
+    networks:
+      - kamailio-net
+
+networks:
+  kamailio-net:
+    driver: bridge
