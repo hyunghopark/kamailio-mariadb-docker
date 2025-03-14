@@ -14,18 +14,25 @@ services:
     volumes:
       - ./mariadb:/var/lib/mysql
       - ./config/mariadb:/etc/mysql/conf.d
+      - ./config/mariadb/init.sql:/docker-entrypoint-initdb.d/init.sql
     command:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_unicode_ci
     networks:
       - kamailio-net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "kamailio", "-pkamailiorw"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   kamailio:
     image: ghcr.io/kamailio/kamailio:latest
     container_name: kamailio-sip
     restart: always
     depends_on:
-      - mariadb
+      mariadb:
+        condition: service_healthy
     ports:
       - "5060:5060/udp"
       - "5060:5060/tcp"
@@ -35,8 +42,21 @@ services:
     environment:
       - TZ=Asia/Seoul
       - SIP_DOMAIN=sip.example.com
+      - DBENGINE=MYSQL
+      - DBHOST=mariadb
+      - DBPORT=3306
+      - DBNAME=kamailio
+      - DBRWUSER=kamailio
+      - DBRWPW=kamailiorw
     networks:
       - kamailio-net
+    command: >
+      bash -c "
+        echo 'Waiting for MariaDB to be ready...' &&
+        sleep 10 &&
+        kamdbctl create &&
+        kamailio -DD -E
+      "
 
 networks:
   kamailio-net:
