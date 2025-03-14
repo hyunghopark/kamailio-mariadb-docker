@@ -55,6 +55,9 @@ services:
         echo 'Waiting for MariaDB to be ready...' &&
         sleep 10 &&
         kamdbctl create &&
+        touch /etc/kamailio/dispatcher.list &&
+        chmod 644 /etc/kamailio/dispatcher.list &&
+        cp -f /etc/kamailio/dispatcher.list /etc/kamailio/dispatcher.list.bak &&
         kamailio -DD -E
       "
 
